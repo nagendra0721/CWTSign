@@ -2,17 +2,20 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
 WORKDIR /build
-COPY CWTSign/pom.xml .
-COPY CWTSign/src ./src
 
+# Copy project files
+COPY pom.xml .
+COPY src ./src
+
+# Build the application
 RUN mvn clean package -DskipTests
 
-# ---------- Stage 2: Create runtime image ----------
+# ---------- Stage 2: Runtime image ----------
 FROM eclipse-temurin:21-jdk-alpine
 
 WORKDIR /app
 
-# Copy the jar from the builder stage
+# Copy built JAR from builder stage
 COPY --from=builder /build/target/*.jar app.jar
 
 EXPOSE 8091
