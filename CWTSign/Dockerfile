@@ -7,3 +7,5 @@ COPY app.jar /app.jar
 
 # Set the entrypoint to run the JAR
 ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+EXPOSE 8091
