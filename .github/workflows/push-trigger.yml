@@ -1,0 +1,46 @@
+name: Maven Build and Push to Docker Hub
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - name: Cache local Maven repo
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Build JAR
+      run: |
+        cd src
+        mvn clean package -DskipTests
+        cp target/*.jar ../
+
+    - name: Docker Login
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Build Docker Image
+      run: |
+        cd src
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/cwtsigner-app:latest .
+
+    - name: Push to Docker Hub
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/cwtsigner-app:latest
