@@ -57,7 +57,7 @@ jobs:
       - name: Build Docker image
         run: |
            cp ./build/*.jar ./app.jar ./  # Ensure the JAR is in Docker build context
-           docker build -t ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/${{ secrets.RELEASE_DOCKER_HUB }}:latest .
+           docker build -t ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/cwtsign:latest .
 
       - name: Push Docker image to Docker Hub
         run: |
