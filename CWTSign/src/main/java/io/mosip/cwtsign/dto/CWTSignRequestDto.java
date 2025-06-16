@@ -11,5 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CWTSignRequestDto {
+    @NotNull
     private String claim169Data;
 }

@@ -34,7 +34,14 @@ import io.mosip.cwtsign.dto.CWTVerifyRequestDto;
 import io.mosip.cwtsign.dto.CWTVerifyResponseDto;
 import io.mosip.cwtsign.service.CWTSignService;
 import jakarta.annotation.PostConstruct;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.json.JSONObject;
 
 import com.authlete.cose.constants.COSEAlgorithms;
@@ -50,7 +57,6 @@ public class CWTSignServiceImpl implements CWTSignService {
     private static final String ISS = "www.mosip.io";
     private static final String ED25519_KEY_ALIAS = "ed25519-cwtsign";
     private static final String JWK_FILE_NAME = "key.jwk";
-    private static final String SAMPLE_CLAIM_169_DATA = "a663686563c74018c740180940064063686563c740184b094006406a646f63756d656e7463676663a2636a6964616a636a696463676663a2636a696464676663636776657263303043626964676d696368616e616c616e696b61616e3431343939623938306135383166663565356361396335643338333530353730616a64617465543139393939393932383437656d61696c5846746573746578616d706c65406578616d706c652e636f6d3c2f786d6c3e616a646174655431393939393932383437";
 
     String p12FilePath = "C:/Mosip/cwt-keystore.p12";
     String keystorePassword = "1234";
@@ -82,6 +88,7 @@ public class CWTSignServiceImpl implements CWTSignService {
                 }
             }
         } catch (Exception e) {
+            System.out.println("Error initializing keystore: " + e.getMessage());
             throw new RuntimeException("Error while loading keystore.", e);
         }
     }
@@ -96,6 +103,7 @@ public class CWTSignServiceImpl implements CWTSignService {
                 System.out.println("Ed25519 key found with alias: " + ED25519_KEY_ALIAS);
             }
         } catch (Exception e) {
+            System.out.println("Error ensuring Ed25519 key exists: " + e.getMessage());
             throw new RuntimeException("Error ensuring Ed25519 key exists", e);
         }
     }
@@ -169,18 +177,18 @@ public class CWTSignServiceImpl implements CWTSignService {
         Date startDate = new Date(now);
         Date endDate = new Date(now + (365L * 24 * 60 * 60 * 1000)); // 1 year validity
 
-        org.bouncycastle.asn1.x500.X500Name dnName = new org.bouncycastle.asn1.x500.X500Name(
+        X500Name dnName = new org.bouncycastle.asn1.x500.X500Name(
                 "CN=CWT Signing Key (" + keyId + "), O=MOSIP, C=IN");
         BigInteger certSerialNumber = new BigInteger(Long.toString(now));
 
-        org.bouncycastle.cert.X509v3CertificateBuilder certBuilder = new org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder(
+        X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
                 dnName, certSerialNumber, startDate, endDate, dnName, publicKey);
 
-        org.bouncycastle.operator.ContentSigner contentSigner = new org.bouncycastle.operator.jcajce.JcaContentSignerBuilder("Ed25519")
+        ContentSigner contentSigner = new JcaContentSignerBuilder("Ed25519")
                 .setProvider(provider).build(privateKey);
 
-        org.bouncycastle.cert.X509CertificateHolder certHolder = certBuilder.build(contentSigner);
-        return new org.bouncycastle.cert.jcajce.JcaX509CertificateConverter()
+        X509CertificateHolder certHolder = certBuilder.build(contentSigner);
+        return new JcaX509CertificateConverter()
                 .setProvider(provider).getCertificate(certHolder);
     }
 
@@ -192,6 +200,7 @@ public class CWTSignServiceImpl implements CWTSignService {
     }
 
     private Provider setupProvider() {
+        System.out.println("Setting up BouncyCastle provider");
         return new BouncyCastleProvider();
     }
 
@@ -203,6 +212,7 @@ public class CWTSignServiceImpl implements CWTSignService {
             }
             return new SimpleEntry<>(ED25519_KEY_ALIAS, privateKey);
         } catch (Exception e) {
+            System.out.println("Error retrieving Ed25519 private key: " + e.getMessage());
             throw new RuntimeException("Error retrieving Ed25519 private key", e);
         }
     }
@@ -216,15 +226,14 @@ public class CWTSignServiceImpl implements CWTSignService {
             EdECPublicKey publicKey = (EdECPublicKey) certificate.getPublicKey();
             return new SimpleEntry<>(ED25519_KEY_ALIAS, publicKey);
         } catch (Exception e) {
+            System.out.println("Error retrieving Ed25519 public key: " + e.getMessage());
             throw new RuntimeException("Error retrieving Ed25519 public key", e);
         }
     }
 
     @Override
     public CWTSignResponseDto cwtSign(CWTSignRequestDto requestDto) {
-        String claim169Data = (requestDto.getClaim169Data() == null || requestDto.getClaim169Data().isEmpty())
-                ? SAMPLE_CLAIM_169_DATA
-                : requestDto.getClaim169Data();
+        String claim169Data = requestDto.getClaim169Data();
 
         Entry<String, EdECPrivateKey> keyPair = getEd25519PrivateKey();
         int algorithm = COSEAlgorithms.EdDSA;
@@ -279,6 +288,7 @@ public class CWTSignServiceImpl implements CWTSignService {
             responseDto.setCwtHexData(cwt.encodeToHex());
             return responseDto;
         } catch (Exception e) {
+            System.out.println("Error during CWT signing: " + e.getMessage());
             throw new RuntimeException("Error during CWT signing", e);
         }
     }
@@ -287,7 +297,7 @@ public class CWTSignServiceImpl implements CWTSignService {
         for (Object key : claim169Map.keySet()) {
             if (((Integer) key) == 62) {
                 Map<Object, Object> photoDataMap = (Map) claim169Map.get(key);
-                String photoData = (String) photoDataMap.get(0);
+                String photoData = (String) photoDataMap.get(Integer.valueOf(0));
                 byte[] photoBytes = HexFormat.of().parseHex(photoData);
                 photoDataMap.put(0, photoBytes);
                 claim169Map.put(62, photoDataMap);
@@ -318,7 +328,9 @@ public class CWTSignServiceImpl implements CWTSignService {
             responseDto.setStatus(valid ? "Valid" : "Invalid");
             return responseDto;
         } catch (Exception e) {
+            System.out.println("Error during CWT verification: " + e.getMessage());
             throw new RuntimeException("Error during CWT verification", e);
+
         }
     }
 }
