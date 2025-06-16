@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
+    name: Maven Build
     runs-on: ubuntu-latest
 
     steps:
@@ -25,18 +26,39 @@ jobs:
         working-directory: ./CWTSign
         run: |
           mvn clean package -DskipTests
-          cp target/*.jar ../
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cwtsign-jar
+          path: ./CWTSign/target/*.jar
+
+  docker:
+    name: Docker Build and Push
+    runs-on: ubuntu-latest
+    needs: build  # Ensure this runs after the Maven build job
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cwtsign-jar
+          path: ./build
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.ACTOR_DOCKER_HUB }}
+          password: ${{ secrets.PASSWORD_DOCKER_HUB }}
 
       - name: Build Docker image
         run: |
-          docker build -t abhishek8shankar/cwtsign:latest .
+          cp ./build/*.jar ./  # Ensure the JAR is in Docker build context
+          docker build -t ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/${{ secrets.RELEASE_DOCKER_HUB }}:latest .
 
       - name: Push Docker image to Docker Hub
         run: |
-          docker push abhishek8shankar/cwtsign:latest
+          docker push ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/${{ secrets.RELEASE_DOCKER_HUB }}:latest
