@@ -48,6 +48,7 @@ import com.authlete.cose.constants.COSEAlgorithms;
 import com.authlete.cwt.CWT;
 import com.authlete.cwt.CWTClaimsSet;
 import com.authlete.cwt.CWTClaimsSetBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -58,7 +59,9 @@ public class CWTSignServiceImpl implements CWTSignService {
     private static final String ED25519_KEY_ALIAS = "ed25519-cwtsign";
     private static final String JWK_FILE_NAME = "key.jwk";
 
-    String p12FilePath = "/keystore/cwt-keystore.p12";
+    @Value("${mosip.cwt.sign.p12.file.path:./cwt-keystore.p12}")
+    String p12FilePath;
+
     String keystorePassword = "1234";
 
     private KeyStore keyStore;
