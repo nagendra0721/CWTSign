@@ -1,3 +1,3 @@
 # CWTSign
 
-cwtsign and cwtverify
+cwtsign and cwtverify.
