@@ -21,12 +21,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Install missing dependencies locally
-        run: |
-          mvn install:install-file -Dfile=libs/cose-1.6.jar -DgroupId=com.authlete -DartifactId=cose -Dversion=1.6 -Dpackaging=jar
-          mvn install:install-file -Dfile=libs/cwt-1.6.jar -DgroupId=com.authlete -DartifactId=cwt -Dversion=1.6 -Dpackaging=jar
-
-
       - name: Build with Maven
         working-directory: ./CWTSign
         run: |
