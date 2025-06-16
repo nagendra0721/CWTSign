@@ -61,7 +61,7 @@ public class CWTSignServiceImpl implements CWTSignService {
 
     @Value("${mosip.cwt.sign.p12.file.path:./cwt-keystore.p12}")
     String p12FilePath;
-
+  
     String keystorePassword = "1234";
 
     private KeyStore keyStore;
