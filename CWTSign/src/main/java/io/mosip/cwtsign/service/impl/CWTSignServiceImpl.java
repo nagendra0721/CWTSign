@@ -58,7 +58,7 @@ public class CWTSignServiceImpl implements CWTSignService {
     private static final String ED25519_KEY_ALIAS = "ed25519-cwtsign";
     private static final String JWK_FILE_NAME = "key.jwk";
 
-    String p12FilePath = "/keystore/cwt-keystore.p12";
+    String p12FilePath = "/cwt-keystore.p12";
     String keystorePassword = "1234";
 
     private KeyStore keyStore;
