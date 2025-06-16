@@ -52,7 +52,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.ACTOR_DOCKER_HUB }}
-          password: ${{ secrets.PASSWORD_DOCKER_HUB }}
+          password: ${{ secrets.RELEASE_DOCKER_HUB}}
 
       - name: Build Docker image
         run: |
