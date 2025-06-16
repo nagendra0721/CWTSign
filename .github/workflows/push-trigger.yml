@@ -54,16 +54,23 @@ jobs:
           username: ${{ secrets.ACTOR_DOCKER_HUB }}
           password: ${{ secrets.RELEASE_DOCKER_HUB}}
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: cwtsign-jar
+          path: ./build
+
       - name: Prepare JAR for Docker
-        run: cp ./build/*.jar ./app.jar
+        run: |
+         mkdir -p CWTSign
+         cp ./build/*.jar CWTSign/app.jar
 
       - name: Build Docker image
         run: |
-          docker build \
+         docker build \
             -f CWTSign/Dockerfile \
             -t ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/cwtsign:latest \
             CWTSign
 
       - name: Push Docker image to Docker Hub
         run: |
-          docker push ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/${{ secrets.RELEASE_DOCKER_HUB }}:latest
+         docker push ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/cwtsign:latest
