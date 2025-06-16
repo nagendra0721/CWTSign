@@ -100,20 +100,6 @@
 			<artifactId>bcpkix-jdk18on</artifactId>
 			<version>1.78.1</version>
 		</dependency>
-
-		<!-- Authlete COSE -->
-		<dependency>
-			<groupId>com.authlete</groupId>
-			<artifactId>cose</artifactId>
-			<version>1.6</version>
-		</dependency>
-
-		<!-- Authlete CWT -->
-		<dependency>
-			<groupId>com.authlete</groupId>
-			<artifactId>cwt</artifactId>
-			<version>1.6</version>
-		</dependency>
 	</dependencies>
 
 	<build>
