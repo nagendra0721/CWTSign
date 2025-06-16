@@ -59,9 +59,10 @@ jobs:
 
       - name: Build Docker image
         run: |
-             cd ${{ inputs.SERVICE_LOCATION }}
-             docker build -t ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/${{ secrets.RELEASE_DOCKER_HUB }}:latest .
-
+          docker build \
+            -f CWTSign/Dockerfile \
+            -t ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}/cwtsign:latest \
+            CWTSign
 
       - name: Push Docker image to Docker Hub
         run: |
