@@ -13,19 +13,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @CrossOrigin
 @RestController
-@RequestMapping("/v1")
 @Tag(name = "CWT", description = "Controller for signing CWT (Compact Web Token) requests")
 public class CWTSignController {
 
     @Autowired
     CWTSignService service;
 
-    @PostMapping(value = "/cwtsign")
+    @PostMapping(value = "/cwtSign")
     public CWTSignResponseDto signCWT(@RequestBody @Valid CWTSignRequestDto request) throws Exception {
         return service.cwtSign(request);
     }
 
-    @PostMapping(value = "/cwtverify")
+    @PostMapping(value = "/cwtVerify")
     public CWTVerifyResponseDto verifyCWT(@RequestBody @Valid CWTVerifyRequestDto request) throws Exception {
         return service.cwtVerify(request);
     }
