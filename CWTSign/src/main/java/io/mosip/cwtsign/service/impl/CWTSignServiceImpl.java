@@ -34,6 +34,7 @@ import io.mosip.cwtsign.dto.CWTVerifyRequestDto;
 import io.mosip.cwtsign.dto.CWTVerifyResponseDto;
 import io.mosip.cwtsign.service.CWTSignService;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -51,6 +52,7 @@ import com.authlete.cwt.CWTClaimsSetBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class CWTSignServiceImpl implements CWTSignService {
 
@@ -82,16 +84,16 @@ public class CWTSignServiceImpl implements CWTSignService {
             Path path = Paths.get(p12FilePath);
 
             if (!Files.exists(path)) {
+                log.info("Creating new keystore: {}", p12FilePath);
                 keyStore.load(null, keystorePassword.toCharArray());
-                System.out.println("Created new keystore: " + p12FilePath);
             } else {
                 try (InputStream p12FileStream = new FileInputStream(p12FilePath)) {
+                    log.info("Loading existing keystore: {}", p12FilePath);
                     keyStore.load(p12FileStream, keystorePassword.toCharArray());
-                    System.out.println("Loaded existing keystore: " + p12FilePath);
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error initializing keystore: " + e.getMessage());
+            log.error("Error while loading or creating keystore.", e);
             throw new RuntimeException("Error while loading keystore.", e);
         }
     }
@@ -99,14 +101,14 @@ public class CWTSignServiceImpl implements CWTSignService {
     private void ensureEd25519KeyExists() {
         try {
             if (!keyStore.containsAlias(ED25519_KEY_ALIAS)) {
-                System.out.println("Ed25519 key not found, generating from JWK file...");
+                log.info("Ed25519 key not found, generating from JWK file.");
                 generateEd25519KeyFromJWKFile();
                 saveKeystore();
             } else {
-                System.out.println("Ed25519 key found with alias: " + ED25519_KEY_ALIAS);
+                log.info("Ed25519 key found in keystore, using existing key with alias: {}", ED25519_KEY_ALIAS);
             }
         } catch (Exception e) {
-            System.out.println("Error ensuring Ed25519 key exists: " + e.getMessage());
+            log.error("Error ensuring Ed25519 key exists.{}", e.getMessage());
             throw new RuntimeException("Error ensuring Ed25519 key exists", e);
         }
     }
@@ -114,6 +116,7 @@ public class CWTSignServiceImpl implements CWTSignService {
     private JSONObject loadJWKFromFile() throws Exception {
         InputStream inputStream = CWTSignServiceImpl.class.getClassLoader().getResourceAsStream(JWK_FILE_NAME);
         String keyContent = "";
+        log.info("Loading JWK file: {}", JWK_FILE_NAME);
 
         if (Objects.nonNull(inputStream)) {
             keyContent = new String(inputStream.readAllBytes());
@@ -135,6 +138,7 @@ public class CWTSignServiceImpl implements CWTSignService {
     }
 
     private void generateEd25519KeyFromJWKFile() throws Exception {
+        log.info("Generating Ed25519 key from JWK file");
         JSONObject jwk = loadJWKFromFile();
 
         // Extract private key
@@ -176,6 +180,7 @@ public class CWTSignServiceImpl implements CWTSignService {
 
     private java.security.cert.Certificate createSelfSignedCertificate(PrivateKey privateKey, PublicKey publicKey, String keyId) throws Exception {
         // Create self-signed certificate using BouncyCastle
+        log.info("Creating self-signed certificate for Ed25519 key");
         long now = System.currentTimeMillis();
         Date startDate = new Date(now);
         Date endDate = new Date(now + (365L * 24 * 60 * 60 * 1000)); // 1 year validity
@@ -198,16 +203,17 @@ public class CWTSignServiceImpl implements CWTSignService {
     private void saveKeystore() throws Exception {
         try (FileOutputStream fos = new FileOutputStream(p12FilePath)) {
             keyStore.store(fos, keystorePassword.toCharArray());
-            System.out.println("Keystore saved to: " + p12FilePath);
+            log.info("Keystore saved to: {}", p12FilePath);
         }
     }
 
     private Provider setupProvider() {
-        System.out.println("Setting up BouncyCastle provider");
+        log.info("Setting up BouncyCastle provider");
         return new BouncyCastleProvider();
     }
 
     private Entry<String, EdECPrivateKey> getEd25519PrivateKey() {
+        log.info("Retrieving Ed25519 private key with alias: {}", ED25519_KEY_ALIAS);
         try {
             EdECPrivateKey privateKey = (EdECPrivateKey) keyStore.getKey(ED25519_KEY_ALIAS, keystorePassword.toCharArray());
             if (privateKey == null) {
@@ -215,12 +221,13 @@ public class CWTSignServiceImpl implements CWTSignService {
             }
             return new SimpleEntry<>(ED25519_KEY_ALIAS, privateKey);
         } catch (Exception e) {
-            System.out.println("Error retrieving Ed25519 private key: " + e.getMessage());
+            log.error("Error retrieving Ed25519 private key: {}", e.getMessage());
             throw new RuntimeException("Error retrieving Ed25519 private key", e);
         }
     }
 
     private Entry<String, EdECPublicKey> getEd25519PublicKey() {
+        log.info("Retrieving Ed25519 public key with alias: {}", ED25519_KEY_ALIAS);
         try {
             java.security.cert.Certificate certificate = keyStore.getCertificate(ED25519_KEY_ALIAS);
             if (certificate == null) {
@@ -229,15 +236,17 @@ public class CWTSignServiceImpl implements CWTSignService {
             EdECPublicKey publicKey = (EdECPublicKey) certificate.getPublicKey();
             return new SimpleEntry<>(ED25519_KEY_ALIAS, publicKey);
         } catch (Exception e) {
-            System.out.println("Error retrieving Ed25519 public key: " + e.getMessage());
+            log.error("Error retrieving Ed25519 public key: {}", e.getMessage());
             throw new RuntimeException("Error retrieving Ed25519 public key", e);
         }
     }
 
     @Override
     public CWTSignResponseDto cwtSign(CWTSignRequestDto requestDto) {
+        log.info("CWT Signing for claim 169 data{}", requestDto.getClaim169Data());
         String claim169Data = requestDto.getClaim169Data();
 
+        log.info("getting Ed25519 key pair for signing");
         Entry<String, EdECPrivateKey> keyPair = getEd25519PrivateKey();
         int algorithm = COSEAlgorithms.EdDSA;
 
@@ -268,6 +277,7 @@ public class CWTSignServiceImpl implements CWTSignService {
 
             CBORByteArray claim169Payload = new CBORByteArray(claimsSet.encode());
 
+            log.debug("CWT Signing: claim169Payload and header");
             SigStructure sigStructure = new SigStructureBuilder().signature1()
                     .bodyAttributes(protectedHeader)
                     .payload(claim169Payload)
@@ -285,6 +295,7 @@ public class CWTSignServiceImpl implements CWTSignService {
 
             CWT cwt = new CWT(sign1);
 
+            log.info("CWT Signed Successfully...");
             CWTSignResponseDto responseDto = new CWTSignResponseDto();
             responseDto.setSuccess(true);
             responseDto.setMessage("CWT Signed Successfully with Ed25519 from JWK file");
@@ -311,8 +322,10 @@ public class CWTSignServiceImpl implements CWTSignService {
 
     @Override
     public CWTVerifyResponseDto cwtVerify(CWTVerifyRequestDto requestDto) {
+        log.info("CWT Verification for claim 169 data {}", requestDto.getCwtSignedData());
         try {
             String cwtSignedData = requestDto.getCwtSignedData();
+            log.info("getting Ed25519 key pair for verification");
             Entry<String, EdECPublicKey> publicKeyPair = getEd25519PublicKey();
 
             COSEVerifier verifier = new COSEVerifier(publicKeyPair.getValue());
@@ -324,6 +337,7 @@ public class CWTSignServiceImpl implements CWTSignService {
             COSESign1 sign1 = (COSESign1) message;
             boolean valid = verifier.verify(sign1);
 
+            log.info("CWT Verified Successfully...");
             CWTVerifyResponseDto responseDto = new CWTVerifyResponseDto();
             responseDto.setSuccess(true);
             responseDto.setMessage("CWT Verified Successfully with Ed25519 from JWK file");
