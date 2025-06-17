@@ -243,7 +243,7 @@ public class CWTSignServiceImpl implements CWTSignService {
 
     @Override
     public CWTSignResponseDto cwtSign(CWTSignRequestDto requestDto) {
-        log.info("CWT Signing for claim 169 data{}", requestDto.getClaim169Data());
+        log.info("CWT Signing for claim 169 data: {}", requestDto.getClaim169Data());
         String claim169Data = requestDto.getClaim169Data();
 
         log.info("getting Ed25519 key pair for signing");
@@ -298,7 +298,7 @@ public class CWTSignServiceImpl implements CWTSignService {
             log.info("CWT Signed Successfully...");
             CWTSignResponseDto responseDto = new CWTSignResponseDto();
             responseDto.setSuccess(true);
-            responseDto.setMessage("CWT Signed Successfully with Ed25519 from JWK file");
+            responseDto.setMessage("CWT Signed Successfully");
             responseDto.setCwtHexData(cwt.encodeToHex());
             return responseDto;
         } catch (Exception e) {
@@ -322,7 +322,7 @@ public class CWTSignServiceImpl implements CWTSignService {
 
     @Override
     public CWTVerifyResponseDto cwtVerify(CWTVerifyRequestDto requestDto) {
-        log.info("CWT Verification for claim 169 data {}", requestDto.getCwtSignedData());
+        log.info("CWT Verification for claim 169 data: {}", requestDto.getCwtSignedData());
         try {
             String cwtSignedData = requestDto.getCwtSignedData();
             log.info("getting Ed25519 key pair for verification");
