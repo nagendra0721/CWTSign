@@ -298,7 +298,7 @@ public class CWTSignServiceImpl implements CWTSignService {
             log.info("CWT Signed Successfully...");
             CWTSignResponseDto responseDto = new CWTSignResponseDto();
             responseDto.setSuccess(true);
-            responseDto.setMessage("CWT Signed Successfully");
+            responseDto.setMessage("CWT Signed Successfully...");
             responseDto.setCwtHexData(cwt.encodeToHex());
             return responseDto;
         } catch (Exception e) {
@@ -340,7 +340,7 @@ public class CWTSignServiceImpl implements CWTSignService {
             log.info("CWT Verified Successfully...");
             CWTVerifyResponseDto responseDto = new CWTVerifyResponseDto();
             responseDto.setSuccess(true);
-            responseDto.setMessage("CWT Verified Successfully with Ed25519 from JWK file");
+            responseDto.setMessage("CWT Verified Successfully...");
             responseDto.setValid(valid);
             responseDto.setStatus(valid ? "Valid" : "Invalid");
             return responseDto;
